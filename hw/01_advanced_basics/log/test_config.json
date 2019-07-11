@@ -1,0 +1,5 @@
+{
+    "REPORT_SIZE": 500,
+    "REPORT_DIR": "./reports2",
+    "LOG_DIR": "./log2"
+}

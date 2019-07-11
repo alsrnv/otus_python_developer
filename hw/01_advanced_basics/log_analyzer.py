@@ -30,7 +30,7 @@ def process_args():
         raise Exception('Неверный путь файла')
     return args
 
-def define_config(path_to_config_file, local_config):
+def combine_config(path_to_config_file, local_config):
     try:
         with open(path_to_config_file) as f:
             config_file = json.load(f)
@@ -41,7 +41,7 @@ def define_config(path_to_config_file, local_config):
 
 def main():
     args = process_args()
-    config = define_config(path_to_config_file=args.config_path, local_config=local_config)
+    config = combine_config(path_to_config_file=args.config_path, local_config=local_config)
     print(config)
 
 
