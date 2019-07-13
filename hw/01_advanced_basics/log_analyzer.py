@@ -13,7 +13,7 @@ import json
 import logging
 
 
-local_config = {
+LOCAL_CONFIG = {
     "REPORT_SIZE": 1000,
     "REPORT_DIR": "./reports",
     "LOG_DIR": "./log"
@@ -30,7 +30,7 @@ def process_args():
         raise Exception('Неверный путь файла')
     return args
 
-def combine_config(path_to_config_file, local_config):
+def combine_config(path_to_config_file, local_config=LOCAL_CONFIG):
     try:
         with open(path_to_config_file) as f:
             config_file = json.load(f)
@@ -41,7 +41,7 @@ def combine_config(path_to_config_file, local_config):
 
 def main():
     args = process_args()
-    config = combine_config(path_to_config_file=args.config_path, local_config=local_config)
+    config = combine_config(path_to_config_file=args.config_path)
     print(config)
 
 
