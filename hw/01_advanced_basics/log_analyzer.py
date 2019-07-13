@@ -11,6 +11,14 @@ import argparse
 import os
 import json
 import logging
+import re
+import datetime
+
+
+logging.basicConfig(level=logging.INFO,
+                    format="[%(asctime)s] %(levelname).1s %(message)s",
+                    datefmt="%Y.%m.%d %H:%M:%S",
+                    filename=None)
 
 
 LOCAL_CONFIG = {
@@ -21,6 +29,7 @@ LOCAL_CONFIG = {
 
 
 def process_args():
+    logging.info('Reading parameter config')
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", dest="config_path")
     args = parser.parse_args()
@@ -31,6 +40,7 @@ def process_args():
     return args
 
 def combine_config(path_to_config_file, local_config=LOCAL_CONFIG):
+    logging.info('Combine log files')
     try:
         with open(path_to_config_file) as f:
             config_file = json.load(f)
@@ -39,10 +49,31 @@ def combine_config(path_to_config_file, local_config=LOCAL_CONFIG):
         return local_config
 
 
+def get_latest_file(path_to_dir):
+    logging.info('Starting to search latest file')
+    pattern = re.compile(r"^nginx-access-ui\.log-(\d{8})(\.gz)?$")
+    min_date = datetime.datetime.min.date()
+    file_output = None
+    for file_name in os.listdir(path_to_dir):
+        match = pattern.search(file_name)
+        if match:
+            file_date = datetime.datetime.strptime(match.group(1), "%Y%m%d").date()
+            if file_date > min_date:
+                file_output = file_name
+                min_date = file_date
+    return file_output
+
 def main():
     args = process_args()
     config = combine_config(path_to_config_file=args.config_path)
-    print(config)
+    logging.info("Config is {}".format(config))
+    file_latest = get_latest_file(config['LOG_DIR'])
+    logging.info("Latest log file is {}".format(file_latest))
+
+
+
+
+
 
 
 if __name__ == "__main__":
