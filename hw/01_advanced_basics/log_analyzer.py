@@ -1,12 +1,5 @@
 
 
-
-# log_format ui_short '$remote_addr  $remote_user $http_x_real_ip [$time_local] "$request" '
-#                     '$status $body_bytes_sent "$http_referer" '
-#                     '"$http_user_agent" "$http_x_forwarded_for" "$http_X_REQUEST_ID" "$http_X_RB_USER" '
-#                     '$request_time';
-
-
 import argparse
 import os
 import json
@@ -20,6 +13,21 @@ logging.basicConfig(level=logging.INFO,
                     datefmt="%Y.%m.%d %H:%M:%S",
                     filename=None)
 
+LOG_PATTERN = re.compile(
+    r"(?P<remote_addr>[\d\.]+)\s"
+    r"(?P<remote_user>\S*)\s+"
+    r"(?P<http_x_real_ip>\S*)\s"
+    r"\[(?P<time_local>.*?)\]\s"
+    r'"(?P<request>.*?)"\s'
+    r"(?P<status>\d+)\s"
+    r"(?P<body_bytes_sent>\S*)\s"
+    r'"(?P<http_referer>.*?)"\s'
+    r'"(?P<http_user_agent>.*?)"\s'
+    r'"(?P<http_x_forwarded_for>.*?)"\s'
+    r'"(?P<http_X_REQUEST_ID>.*?)"\s'
+    r'"(?P<http_X_RB_USER>.*?)"\s'
+    r"(?P<request_time>\d+\.\d+)\s*"
+)
 
 LOCAL_CONFIG = {
     "REPORT_SIZE": 1000,
@@ -49,7 +57,7 @@ def combine_config(path_to_config_file, local_config=LOCAL_CONFIG):
         return local_config
 
 
-def get_latest_file(path_to_dir):
+def get_latest_log_file(path_to_dir):
     logging.info('Starting to search latest file')
     pattern = re.compile(r"^nginx-access-ui\.log-(\d{8})(\.gz)?$")
     min_date = datetime.datetime.min.date()
@@ -63,17 +71,29 @@ def get_latest_file(path_to_dir):
                 min_date = file_date
     return file_output
 
+def process_line(line):
+    m = LOG_PATTERN.match(line)
+    if m:
+        return m.groupdict()
+    return None
+
+
 def main():
-    args = process_args()
-    config = combine_config(path_to_config_file=args.config_path)
-    logging.info("Config is {}".format(config))
-    file_latest = get_latest_file(config['LOG_DIR'])
-    logging.info("Latest log file is {}".format(file_latest))
+
+    try:
+        args = process_args()
+        config = combine_config(path_to_config_file=args.config_path)
+        logging.info("Config is {}".format(config))
+        file_latest = get_latest_log_file(config['LOG_DIR'])
+        logging.info("Latest log file is {}".format(file_latest))
+        if not file_latest:
+            raise Exception('Нет файлов для обработки')
 
 
 
 
-
+    except Exception as e:
+        logging.exception(str(e))
 
 
 if __name__ == "__main__":
