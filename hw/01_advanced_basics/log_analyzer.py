@@ -6,7 +6,9 @@ import json
 import logging
 import re
 import datetime
+from collections import namedtuple
 
+FILE_LOG = namedtuple('FILE_LOG', {'name':'', 'date':'', 'ext':''})
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname).1s %(message)s",
@@ -66,9 +68,10 @@ def get_latest_log_file(path_to_dir):
         match = pattern.search(file_name)
         if match:
             file_date = datetime.datetime.strptime(match.group(1), "%Y%m%d").date()
+            file_ext = match.group(2)
             if file_date > min_date:
-                file_output = file_name
                 min_date = file_date
+                file_output = FILE_LOG(name=file_name, date=file_date, ext=file_ext)
     return file_output
 
 def process_line(line):
@@ -76,6 +79,8 @@ def process_line(line):
     if m:
         return m.groupdict()
     return None
+
+
 
 
 def main():
@@ -88,6 +93,7 @@ def main():
         logging.info("Latest log file is {}".format(file_latest))
         if not file_latest:
             raise Exception('Нет файлов для обработки')
+        print(file_latest.name)
 
 
 
