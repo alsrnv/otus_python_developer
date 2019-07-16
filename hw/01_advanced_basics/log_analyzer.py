@@ -6,9 +6,12 @@ import json
 import logging
 import re
 import datetime
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+import os
+import gzip
+from statistics import median
 
-FILE_LOG = namedtuple('FILE_LOG', {'name':'', 'date':'', 'ext':''})
+FILE_LOG = namedtuple('FILE_LOG', {'name':'', 'date':'', 'ext':'', 'path_to_file':''})
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname).1s %(message)s",
@@ -34,7 +37,8 @@ LOG_PATTERN = re.compile(
 LOCAL_CONFIG = {
     "REPORT_SIZE": 1000,
     "REPORT_DIR": "./reports",
-    "LOG_DIR": "./log"
+    "LOG_DIR": "./log",
+    "ERROR_PERCENT": 0.4
 }
 
 
@@ -71,17 +75,59 @@ def get_latest_log_file(path_to_dir):
             file_ext = match.group(2)
             if file_date > min_date:
                 min_date = file_date
-                file_output = FILE_LOG(name=file_name, date=file_date, ext=file_ext)
+                file_output = FILE_LOG(name=file_name, date=file_date, ext=file_ext,
+                                       path_to_file = os.path.join(path_to_dir, file_name))
     return file_output
 
 def process_line(line):
-    m = LOG_PATTERN.match(line)
-    if m:
-        return m.groupdict()
+    match = LOG_PATTERN.match(line)
+    if match:
+        return match.groupdict()
     return None
 
+def process_file(file_log, error_percent):
 
+    if file_log.ext == '.gz':
+        f = gzip.open(file_log.path_to_file, mode='rt')
+    else:
+        f = file_log.path_to_file.open()
+    n_lines = 0
+    n_errors = 0
+    dict_url = defaultdict(list)
+    with f:
+        for line in f:
+            n_lines += 1
+            res_dict = process_line(line)
+            if res_dict is None:
+                n_errors += 1
+                continue
+            try:
+                url = res_dict['request'].split()[1]
+                dict_url[url].append(float(res_dict['request_time']))
+            except(ValueError, TypeError, IndexError):
+                continue
+    if n_errors/n_lines > error_percent:
+        raise Exception("Доля ошибок превысила допустимый пределел {}".format(error_percent))
 
+    total_times = 0
+    total_count = 0
+    for _, v in dict_url.items():
+        total_times += sum(v)
+        total_count += len(v)
+
+    stat = []
+    for url, request_times in dict_url.items():
+        stat.append({
+            'url': url,
+            'count': len(request_times),
+            'count_perc': round(100. * len(request_times) / float(total_count), 3),
+            'time_sum': round(sum(request_times), 3),
+            'time_perc': round(100. * sum(request_times) / total_times, 3),
+            'time_avg': round(sum(request_times)/len(request_times), 3),
+            'time_max': round(max(request_times), 3),
+            "time_med": round(median(request_times), 3),
+        })
+    return stat
 
 def main():
 
@@ -89,11 +135,11 @@ def main():
         args = process_args()
         config = combine_config(path_to_config_file=args.config_path)
         logging.info("Config is {}".format(config))
-        file_latest = get_latest_log_file(config['LOG_DIR'])
-        logging.info("Latest log file is {}".format(file_latest))
-        if not file_latest:
+        file_log_latest = get_latest_log_file(config['LOG_DIR'])
+        logging.info("Latest log file is {}".format(file_log_latest))
+        if not file_log_latest:
             raise Exception('Нет файлов для обработки')
-        print(file_latest.name)
+        stat = process_file(file_log_latest, error_percent=config['ERROR_PERCENT'])
 
 
 
