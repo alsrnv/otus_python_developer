@@ -1,7 +1,6 @@
 
 
 import argparse
-import os
 import json
 import logging
 import re
@@ -10,6 +9,7 @@ from collections import namedtuple, defaultdict
 import os
 import gzip
 from statistics import median
+import string
 
 FILE_LOG = namedtuple('FILE_LOG', {'name':'', 'date':'', 'ext':'', 'path_to_file':''})
 
@@ -85,8 +85,8 @@ def process_line(line):
         return match.groupdict()
     return None
 
-def process_file(file_log, error_percent):
-
+def process_file(file_log, error_percent, report_size):
+    logging.info("Обработка файла {}".format(file_log.name))
     if file_log.ext == '.gz':
         f = gzip.open(file_log.path_to_file, mode='rt')
     else:
@@ -127,7 +127,24 @@ def process_file(file_log, error_percent):
             'time_max': round(max(request_times), 3),
             "time_med": round(median(request_times), 3),
         })
+    stat = sorted(stat, key = lambda x: x['time_sum'], reverse=True)
+    stat = stat[:report_size]
     return stat
+
+def get_report_path(report_dir, file_log):
+    report_name = 'report-{}.html'.format(file_log.date.strftime(format='%Y.%m.%d'))
+    report_path = os.path.join(report_dir, report_name)
+    return report_path
+
+def create_report(report_dir, report_path, stat):
+    template_path = os.path.join(report_dir, 'report.html')
+    with open(template_path) as f:
+        template = string.Template(f.read())
+    report = template.safe_substitute(table_json=json.dumps(stat))
+    with open(report_path, mode='w') as f:
+        f.write(report)
+    logging.info("Отчет {} создан".format(report_path))
+
 
 def main():
 
@@ -139,10 +156,12 @@ def main():
         logging.info("Latest log file is {}".format(file_log_latest))
         if not file_log_latest:
             raise Exception('Нет файлов для обработки')
-        stat = process_file(file_log_latest, error_percent=config['ERROR_PERCENT'])
-
-
-
+        stat = process_file(file_log_latest, error_percent=config['ERROR_PERCENT'], report_size=config['REPORT_SIZE'])
+        report_path = get_report_path(report_dir=config['REPORT_DIR'], file_log=file_log_latest)
+        if os.path.exists(report_path):
+            logging.info("Отчет {} уже существует".format(report_path))
+            return
+        create_report(report_dir=config['REPORT_DIR'], report_path=report_path, stat=stat)
 
     except Exception as e:
         logging.exception(str(e))
