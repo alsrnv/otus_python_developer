@@ -147,25 +147,23 @@ def create_report(report_dir, report_path, stat):
 
 
 def main():
-
-    try:
-        args = process_args()
-        config = combine_config(path_to_config_file=args.config_path)
-        logging.info("Config is {}".format(config))
-        file_log_latest = get_latest_log_file(config['LOG_DIR'])
-        logging.info("Latest log file is {}".format(file_log_latest))
-        if not file_log_latest:
-            raise Exception('Нет файлов для обработки')
-        stat = process_file(file_log_latest, error_percent=config['ERROR_PERCENT'], report_size=config['REPORT_SIZE'])
-        report_path = get_report_path(report_dir=config['REPORT_DIR'], file_log=file_log_latest)
-        if os.path.exists(report_path):
-            logging.info("Отчет {} уже существует".format(report_path))
-            return
-        create_report(report_dir=config['REPORT_DIR'], report_path=report_path, stat=stat)
-
-    except Exception as e:
-        logging.exception(str(e))
+    args = process_args()
+    config = combine_config(path_to_config_file=args.config_path)
+    logging.info("Config is {}".format(config))
+    file_log_latest = get_latest_log_file(config['LOG_DIR'])
+    logging.info("Latest log file is {}".format(file_log_latest))
+    if not file_log_latest:
+        raise Exception('Нет файлов для обработки')
+    stat = process_file(file_log_latest, error_percent=config['ERROR_PERCENT'], report_size=config['REPORT_SIZE'])
+    report_path = get_report_path(report_dir=config['REPORT_DIR'], file_log=file_log_latest)
+    if os.path.exists(report_path):
+        logging.info("Отчет {} уже существует".format(report_path))
+        return
+    create_report(report_dir=config['REPORT_DIR'], report_path=report_path, stat=stat)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logging.exception(str(e))
