@@ -85,7 +85,8 @@ def process_line(line):
         return match.groupdict()
     return None
 
-def process_file(file_log, error_percent, report_size):
+
+def read_file(file_log, error_percent):
     logging.info("Обработка файла {}".format(file_log.name))
     if file_log.ext == '.gz':
         f = gzip.open(file_log.path_to_file, mode='rt')
@@ -108,7 +109,9 @@ def process_file(file_log, error_percent, report_size):
                 continue
     if n_errors/n_lines > error_percent:
         raise Exception("Доля ошибок превысила допустимый пределел {}".format(error_percent))
+    return dict_url
 
+def compute_stat(dict_url, report_size):
     total_times = 0
     total_count = 0
     for _, v in dict_url.items():
@@ -154,7 +157,8 @@ def main():
     logging.info("Latest log file is {}".format(file_log_latest))
     if not file_log_latest:
         raise Exception('Нет файлов для обработки')
-    stat = process_file(file_log_latest, error_percent=config['ERROR_PERCENT'], report_size=config['REPORT_SIZE'])
+    dict_url_raw = read_file(file_log_latest, error_percent=config['ERROR_PERCENT'])
+    stat = compute_stat(dict_url=dict_url_raw, report_size=config['REPORT_SIZE'])
     report_path = get_report_path(report_dir=config['REPORT_DIR'], file_log=file_log_latest)
     if os.path.exists(report_path):
         logging.info("Отчет {} уже существует".format(report_path))
