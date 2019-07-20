@@ -156,7 +156,7 @@ def main():
     file_log_latest = get_latest_log_file(config['LOG_DIR'])
     logging.info("Latest log file is {}".format(file_log_latest))
     if not file_log_latest:
-        raise Exception('Нет файлов для обработки')
+        raise FileNotFoundError('Нет файлов для обработки')
     dict_url_raw = read_file(file_log_latest, error_percent=config['ERROR_PERCENT'])
     stat = compute_stat(dict_url=dict_url_raw, report_size=config['REPORT_SIZE'])
     report_path = get_report_path(report_dir=config['REPORT_DIR'], file_log=file_log_latest)
