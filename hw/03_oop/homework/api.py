@@ -124,6 +124,16 @@ class Request:
     def __init__(self, data):
         self.data = data
 
+    def validate(self):
+        self.errors = []
+        for name, field in self.data.items():
+            obj_ = getattr(self, name, None)
+            obj_.validate(field)
+            val_status = obj_.is_correct
+            if val_status == False:
+                self.errors.append(val_status)
+        self.is_valid = False if self.errors else True
+
 class MethodRequest(Request):
     account = CharField(required=False, nullable=True)
     login = CharField(required=True, nullable=True)
@@ -139,17 +149,7 @@ class MethodRequest(Request):
     def is_admin(self):
         return self.login == ADMIN_LOGIN
 
-    def validate(self) -> None:
-        self.errors = []
-        for name, field in self.data.items():
 
-            obj_ = getattr(self, name, None)
-            obj_.validate(field)
-            val_status = obj_.is_correct
-            if val_status == False:
-                self.errors.append(val_status)
-
-        self.is_valid = False if self.errors else True
 
 class OnlineScoreRequest(Request):
     first_name = CharField(required=False, nullable=True)
@@ -167,15 +167,7 @@ class OnlineScoreRequest(Request):
                 non_empty_lst.append(name)
         return non_empty_lst
 
-    def validate(self):
-        self.errors = []
-        for name, field in self.data.items():
-            obj_ = getattr(self, name, None)
-            obj_.validate(field)
-            val_status = obj_.is_correct
-            if val_status == False:
-                self.errors.append(val_status)
-        self.is_valid = False if self.errors else True
+
 
 def check_auth(request):
     if request.is_admin:
@@ -205,15 +197,7 @@ class ClientsInterestsRequest(Request):
     date = DateField(required=False, nullable=True)
 
 
-    def validate(self):
-        self.errors = []
-        for name, field in self.data.items():
-            obj_ = getattr(self, name, None)
-            obj_.validate(field)
-            val_status = obj_.is_correct
-            if val_status == False:
-                self.errors.append(val_status)
-        self.is_valid = False if self.errors else True
+
 
     def cnt_ids(self):
         return len(self.client_ids.value)
