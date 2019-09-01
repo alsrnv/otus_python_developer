@@ -52,6 +52,8 @@ class Field:
             self.is_correct = False
         if self.is_correct:
             self.value = value
+        else:
+            raise ValueError('Invalid value')
     def __str__(self):
         return str(self.value)
 
@@ -71,6 +73,10 @@ class EmailField(CharField):
             self.is_correct = False
         if self.is_correct:
             self.value = value
+        else:
+            raise ValueError('Invalid value')
+        return self.value
+
 
 class PhoneField(CharField):
     def validate(self, value):
@@ -84,6 +90,10 @@ class PhoneField(CharField):
                 self.is_correct = False
         if self.is_correct:
             self.value = value
+        else:
+            raise ValueError('Invalid value')
+
+        return self.value
 
 
 
@@ -104,17 +114,22 @@ class BirthDayField(DateField):
             if delta.days/365 > 70:
                 raise ValueError("Delta should be less than 70 years")
         if self.is_correct:
-            self.value = value
+            self.value = value.strftime("%d.%m.%Y")
+        return self.value
 
 
 class GenderField(CharField):
     def validate(self, value):
         super().validate(value)
-        if value and self.is_correct:
-            if value not in GENDERS:
-                raise ValueError("Wrong value. Should be 0, 1 or 2")
+        if value not in [0, 1, 2]:
+            self.is_correct = False
         if self.is_correct:
             self.value = value
+        else:
+            raise ValueError('Invalid value')
+        return self.value
+
+
 
 class ClientIDsField(Field):
     pass
